@@ -1,0 +1,26 @@
+services:
+  ruleservice:
+    build:
+      context: .
+      dockerfile: RuleService/Dockerfile
+    ports:
+      - "5002:5002"
+    volumes:
+      - rule-data:/app/data
+
+  pricingservice:
+    build:
+      context: .
+      dockerfile: PricingService/Dockerfile
+    ports:
+      - "5001:5001"
+    environment:
+      - RuleServiceUrl=http://ruleservice:5002
+    depends_on:
+      - ruleservice
+    volumes:
+      - pricing-data:/app/data
+
+volumes:
+  rule-data:
+  pricing-data:

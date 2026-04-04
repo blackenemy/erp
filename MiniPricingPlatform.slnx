@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="PricingService/PricingService.csproj" />
+  <Project Path="RuleService/RuleService.csproj" />
+  <Project Path="Shared/Shared.csproj" />
+</Solution>

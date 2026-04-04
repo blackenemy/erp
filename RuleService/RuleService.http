@@ -1,0 +1,56 @@
+@host = http://localhost:5002
+
+### Health
+GET {{host}}/health
+
+### Get all rules
+GET {{host}}/rules
+
+### Create WeightTier rule
+POST {{host}}/rules
+Content-Type: application/json
+
+{
+  "$type": "WeightTier",
+  "name": "Standard Weight Pricing",
+  "enabled": true,
+  "tiers": [
+    { "minKg": 0,     "maxKg": 5,   "pricePerKg": 20 },
+    { "minKg": 5.01,  "maxKg": 15,  "pricePerKg": 15 },
+    { "minKg": 15.01, "maxKg": 50,  "pricePerKg": 10 }
+  ]
+}
+
+### Create TimeWindowPromotion rule
+POST {{host}}/rules
+Content-Type: application/json
+
+{
+  "$type": "TimeWindowPromotion",
+  "name": "Daytime Discount",
+  "enabled": true,
+  "startTime": "09:00",
+  "endTime": "18:00",
+  "discountPercent": 10
+}
+
+### Create RemoteAreaSurcharge rule
+POST {{host}}/rules
+Content-Type: application/json
+
+{
+  "$type": "RemoteAreaSurcharge",
+  "name": "Southern Remote Zone",
+  "enabled": true,
+  "remoteZipPrefixes": ["95", "96", "97"],
+  "surchargeFlat": 50
+}
+
+### Update a rule (replace <id>)
+# PUT {{host}}/rules/<id>
+# Content-Type: application/json
+#
+# { ... }
+
+### Delete a rule (replace <id>)
+# DELETE {{host}}/rules/<id>

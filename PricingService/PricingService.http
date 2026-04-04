@@ -1,0 +1,39 @@
+@host = http://localhost:5001
+
+### Health
+GET {{host}}/health
+
+### Single quote — normal area
+POST {{host}}/quotes/price
+Content-Type: application/json
+
+{
+  "weightKg": 3,
+  "originZip": "10100",
+  "destinationZip": "10200"
+}
+
+### Single quote — remote area
+POST {{host}}/quotes/price
+Content-Type: application/json
+
+{
+  "weightKg": 10,
+  "originZip": "10100",
+  "destinationZip": "95000"
+}
+
+### Bulk quote
+POST {{host}}/quotes/bulk
+Content-Type: application/json
+
+{
+  "items": [
+    { "weightKg": 2,  "originZip": "10100", "destinationZip": "10200" },
+    { "weightKg": 25, "originZip": "10100", "destinationZip": "96000" },
+    { "weightKg": 8,  "originZip": "30000", "destinationZip": "50000" }
+  ]
+}
+
+### Get job result (replace <jobId>)
+# GET {{host}}/jobs/<jobId>

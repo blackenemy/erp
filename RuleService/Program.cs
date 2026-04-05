@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 using System.Threading.RateLimiting;
 using RuleService;
 using Scalar.AspNetCore;
@@ -23,6 +24,22 @@ builder.Services.ConfigureHttpJsonOptions(o =>
     o.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
     o.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
     o.SerializerOptions.WriteIndented = true;
+    o.SerializerOptions.TypeInfoResolver = new DefaultJsonTypeInfoResolver().WithAddedModifier(x =>
+    {
+        if (x.Type == typeof(Rule))
+        {
+            x.PolymorphismOptions = new JsonPolymorphismOptions
+            {
+                TypeDiscriminatorPropertyName = "$type",
+                DerivedTypes =
+                {
+                    new JsonDerivedType(typeof(TimeWindowPromotionRule), "TimeWindowPromotion"),
+                    new JsonDerivedType(typeof(RemoteAreaSurchargeRule), "RemoteAreaSurcharge"),
+                    new JsonDerivedType(typeof(WeightTierRule), "WeightTier")
+                }
+            };
+        }
+    });
 });
 
 builder.Services.AddSingleton<RuleStore>();
@@ -77,8 +94,39 @@ app.MapGet("/rules/{id}", (string id, RuleStore store) =>
         : Results.NotFound())
    .WithName("GetRuleById");
 
-app.MapPost("/rules", (Rule rule, RuleStore store) =>
+app.MapPost("/rules", async (HttpRequest request, RuleStore store) =>
 {
+    var json = await new StreamReader(request.Body).ReadToEndAsync();
+
+    var options = new JsonSerializerOptions
+    {
+        PropertyNameCaseInsensitive = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        WriteIndented = true
+    };
+
+    options.TypeInfoResolver = new DefaultJsonTypeInfoResolver().WithAddedModifier(x =>
+    {
+        if (x.Type == typeof(Rule))
+        {
+            x.PolymorphismOptions = new JsonPolymorphismOptions
+            {
+                TypeDiscriminatorPropertyName = "$type",
+                DerivedTypes =
+                {
+                    new JsonDerivedType(typeof(TimeWindowPromotionRule), "TimeWindowPromotion"),
+                    new JsonDerivedType(typeof(RemoteAreaSurchargeRule), "RemoteAreaSurcharge"),
+                    new JsonDerivedType(typeof(WeightTierRule), "WeightTier")
+                }
+            };
+        }
+    });
+
+    var rule = JsonSerializer.Deserialize<Rule>(json, options);
+    if (rule == null)
+        return Results.BadRequest("Invalid rule data");
+
     rule.Id = Guid.NewGuid().ToString();
     store.Upsert(rule);
     return Results.Created($"/rules/{rule.Id}", rule);

@@ -217,9 +217,9 @@ public sealed class BulkQuoteWorker(
 
                 logger.LogInformation("Job {JobId} completed — {Count} quotes", jobId, job.Results.Count);
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-                logger.LogError(ex, "Job {JobId} failed", jobId);
+                logger.LogError(e, "Job {JobId} failed", jobId);
                 if (jobs.GetById(jobId) is { } failedJob)
                 {
                     failedJob.Status = "failed";
@@ -320,7 +320,7 @@ public sealed class RetryHandler : DelegatingHandler
             {
                 return await base.SendAsync(request, cancellationToken);
             }
-            catch (HttpRequestException ex) when (attempt < _maxRetries)
+            catch (HttpRequestException) when (attempt < _maxRetries)
             {
                 var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt));
                 _logger.LogWarning(

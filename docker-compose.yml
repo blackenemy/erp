@@ -5,6 +5,8 @@ services:
       dockerfile: RuleService/Dockerfile
     ports:
       - "5002:5002"
+    volumes:
+      - rule-data:/app/data
 
   pricingservice:
     build:

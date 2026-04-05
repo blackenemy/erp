@@ -15,7 +15,13 @@ public abstract record Rule
     public string Id { get; set; } = Guid.NewGuid().ToString();
     public required string Type { get; init; }
     public required string Name { get; set; }
-    public bool Enabled { get; set; } = true;
+    [JsonPropertyName("is_active")]
+    public bool IsActive { get; set; } = true;
+    public int Priority { get; set; } = 0;
+    [JsonPropertyName("effective_from")]
+    public DateOnly? EffectiveFrom { get; set; } = null;
+    [JsonPropertyName("effective_to")]
+    public DateOnly? EffectiveTo { get; set; } = null;
 }
 
 public sealed record TimeWindowPromotionRule : Rule
@@ -78,6 +84,47 @@ public sealed record JobRecord
 //  JSON serialization options
 // ══════════════════════════════════════════════
 
+public sealed class DateOnlyJsonConverter : JsonConverter<DateOnly>
+{
+    private const string Format = "yyyy-MM-dd";
+
+    public override DateOnly Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        var str = reader.GetString();
+        if (string.IsNullOrEmpty(str))
+            throw new JsonException("DateOnly value cannot be null or empty");
+        return DateOnly.ParseExact(str, Format, System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    public override void Write(Utf8JsonWriter writer, DateOnly value, JsonSerializerOptions options)
+        => writer.WriteStringValue(value.ToString(Format, System.Globalization.CultureInfo.InvariantCulture));
+}
+
+public sealed class NullableDateOnlyJsonConverter : JsonConverter<DateOnly?>
+{
+    private const string Format = "yyyy-MM-dd";
+
+    public override DateOnly? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType == JsonTokenType.Null)
+            return null;
+
+        var str = reader.GetString();
+        if (string.IsNullOrEmpty(str))
+            return null;
+
+        return DateOnly.ParseExact(str, Format, System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    public override void Write(Utf8JsonWriter writer, DateOnly? value, JsonSerializerOptions options)
+    {
+        if (value is null)
+            writer.WriteNullValue();
+        else
+            writer.WriteStringValue(value.Value.ToString(Format, System.Globalization.CultureInfo.InvariantCulture));
+    }
+}
+
 public static class AppJsonContext
 {
     public static JsonSerializerOptions Options { get; } = new()
@@ -87,6 +134,7 @@ public static class AppJsonContext
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         AllowTrailingCommas = true,
-        ReadCommentHandling = JsonCommentHandling.Skip
+        ReadCommentHandling = JsonCommentHandling.Skip,
+        Converters = { new DateOnlyJsonConverter(), new NullableDateOnlyJsonConverter() }
     };
 }

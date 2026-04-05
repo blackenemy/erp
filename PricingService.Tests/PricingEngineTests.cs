@@ -39,7 +39,7 @@ public class PricingEngineTests
                 Id = "wt1",
                 Type = "WeightTier",
                 Name = "Standard Pricing",
-                Enabled = true,
+                IsActive = true,
                 Tiers = new()
                 {
                     new(0, 5, 20),
@@ -74,7 +74,7 @@ public class PricingEngineTests
                 Id = "wt1",
                 Type = "WeightTier",
                 Name = "Tiered",
-                Enabled = true,
+                IsActive = true,
                 Tiers = new()
                 {
                     new(0, 5, 20),
@@ -107,7 +107,7 @@ public class PricingEngineTests
                 Id = "wt1",
                 Type = "WeightTier",
                 Name = "Disabled",
-                Enabled = false,
+                IsActive = false,
                 Tiers = new()
                 {
                     new(0, 100, 999) // Would be expensive if enabled
@@ -135,7 +135,7 @@ public class PricingEngineTests
                 Id = "wt1",
                 Type = "WeightTier",
                 Name = "Base",
-                Enabled = true,
+                IsActive = true,
                 Tiers = new() { new(0, 100, 10) }
             },
             new TimeWindowPromotionRule
@@ -143,7 +143,7 @@ public class PricingEngineTests
                 Id = "promo1",
                 Type = "TimeWindowPromotion",
                 Name = "Lunch",
-                Enabled = true,
+                IsActive = true,
                 StartTime = "00:00", // Always applicable
                 EndTime = "23:59",
                 DiscountPercent = 20
@@ -172,7 +172,7 @@ public class PricingEngineTests
                 Id = "wt1",
                 Type = "WeightTier",
                 Name = "Base",
-                Enabled = true,
+                IsActive = true,
                 Tiers = new() { new(0, 100, 10) }
             },
             new RemoteAreaSurchargeRule
@@ -180,7 +180,7 @@ public class PricingEngineTests
                 Id = "surcharge1",
                 Type = "RemoteAreaSurcharge",
                 Name = "Southern",
-                Enabled = true,
+                IsActive = true,
                 RemoteZipPrefixes = new() { "95", "96" },
                 SurchargeFlat = 50
             }
@@ -209,7 +209,7 @@ public class PricingEngineTests
                 Id = "wt1",
                 Type = "WeightTier",
                 Name = "Base",
-                Enabled = true,
+                IsActive = true,
                 Tiers = new() { new(0, 100, 10) }
             },
             new TimeWindowPromotionRule
@@ -217,7 +217,7 @@ public class PricingEngineTests
                 Id = "promo1",
                 Type = "TimeWindowPromotion",
                 Name = "Discount",
-                Enabled = true,
+                IsActive = true,
                 StartTime = "00:00",
                 EndTime = "23:59",
                 DiscountPercent = 10
@@ -227,7 +227,7 @@ public class PricingEngineTests
                 Id = "surcharge1",
                 Type = "RemoteAreaSurcharge",
                 Name = "Remote",
-                Enabled = true,
+                IsActive = true,
                 RemoteZipPrefixes = new() { "95" },
                 SurchargeFlat = 30
             }
@@ -256,7 +256,7 @@ public class PricingEngineTests
                 Id = "wt1",
                 Type = "WeightTier",
                 Name = "Base",
-                Enabled = true,
+                IsActive = true,
                 Tiers = new() { new(0, 100, 10) }
             },
             new RemoteAreaSurchargeRule
@@ -264,7 +264,7 @@ public class PricingEngineTests
                 Id = "surcharge1",
                 Type = "RemoteAreaSurcharge",
                 Name = "Southern",
-                Enabled = true,
+                IsActive = true,
                 RemoteZipPrefixes = new() { "95", "96" },
                 SurchargeFlat = 50
             }
@@ -290,7 +290,7 @@ public class PricingEngineTests
                 Id = "wt1",
                 Type = "WeightTier",
                 Name = "Base",
-                Enabled = true,
+                IsActive = true,
                 Tiers = new() { new(0, 100, 10) }
             }
         };
@@ -314,7 +314,7 @@ public class PricingEngineTests
                 Id = "wt1",
                 Type = "WeightTier",
                 Name = "Base",
-                Enabled = true,
+                IsActive = true,
                 Tiers = new() { new(0, 10000, 5) }
             }
         };
@@ -338,7 +338,7 @@ public class PricingEngineTests
                 Id = "wt1",
                 Type = "WeightTier",
                 Name = "Base",
-                Enabled = true,
+                IsActive = true,
                 Tiers = new() { new(0, 100, 10) }
             },
             new TimeWindowPromotionRule
@@ -346,7 +346,7 @@ public class PricingEngineTests
                 Id = "promo1",
                 Type = "TimeWindowPromotion",
                 Name = "Heavy Discount",
-                Enabled = true,
+                IsActive = true,
                 StartTime = "00:00",
                 EndTime = "23:59",
                 DiscountPercent = 150 // Over 100% discount
@@ -360,5 +360,203 @@ public class PricingEngineTests
         // This tests the engine doesn't crash on extreme values
         Assert.Equal(100m, result.BasePrice);
         Assert.Equal(150m, result.Discount);
+    }
+
+    [Fact]
+    public void PricingEngine_ExpiredRule_ShouldBeIgnored()
+    {
+        // Arrange
+        var yesterday = DateOnly.FromDateTime(DateTime.Today.AddDays(-1));
+        var request = new QuoteRequest(10m, "10100", "95120");
+        var rules = new List<Rule>
+        {
+            new WeightTierRule
+            {
+                Id = "expired",
+                Type = "WeightTier",
+                Name = "Expired Rule",
+                IsActive = true,
+                EffectiveFrom = DateOnly.FromDateTime(DateTime.Today.AddDays(-10)),
+                EffectiveTo = yesterday,
+                Tiers = new() { new(0, 100, 999) } // Would be expensive if active
+            }
+        };
+
+        // Act
+        var result = PricingEngine.Calculate(request, rules);
+
+        // Assert
+        Assert.Equal(BaseFlatRate, result.BasePrice);
+        Assert.Empty(result.AppliedRules);
+    }
+
+    [Fact]
+    public void PricingEngine_FutureRule_ShouldBeIgnored()
+    {
+        // Arrange
+        var tomorrow = DateOnly.FromDateTime(DateTime.Today.AddDays(1));
+        var request = new QuoteRequest(10m, "10100", "95120");
+        var rules = new List<Rule>
+        {
+            new WeightTierRule
+            {
+                Id = "future",
+                Type = "WeightTier",
+                Name = "Future Rule",
+                IsActive = true,
+                EffectiveFrom = tomorrow,
+                EffectiveTo = DateOnly.FromDateTime(DateTime.Today.AddDays(10)),
+                Tiers = new() { new(0, 100, 999) }
+            }
+        };
+
+        // Act
+        var result = PricingEngine.Calculate(request, rules);
+
+        // Assert
+        Assert.Equal(BaseFlatRate, result.BasePrice);
+        Assert.Empty(result.AppliedRules);
+    }
+
+    [Fact]
+    public void PricingEngine_ActiveRule_WithinDateRange_ShouldApply()
+    {
+        // Arrange
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var request = new QuoteRequest(10m, "10100", "95120");
+        var rules = new List<Rule>
+        {
+            new WeightTierRule
+            {
+                Id = "active",
+                Type = "WeightTier",
+                Name = "Active Rule",
+                IsActive = true,
+                EffectiveFrom = today.AddDays(-10),
+                EffectiveTo = today.AddDays(10),
+                Tiers = new() { new(0, 100, 15) }
+            }
+        };
+
+        // Act
+        var result = PricingEngine.Calculate(request, rules);
+
+        // Assert
+        Assert.Equal(150m, result.BasePrice);
+        Assert.Contains("WeightTier", result.AppliedRules[0]);
+    }
+
+    [Fact]
+    public void PricingEngine_NullDates_BackwardCompatibility()
+    {
+        // Arrange - Rule with null dates should always be active
+        var request = new QuoteRequest(10m, "10100", "95120");
+        var rules = new List<Rule>
+        {
+            new WeightTierRule
+            {
+                Id = "undated",
+                Type = "WeightTier",
+                Name = "No Date Restriction",
+                IsActive = true,
+                EffectiveFrom = null,
+                EffectiveTo = null,
+                Tiers = new() { new(0, 100, 15) }
+            }
+        };
+
+        // Act
+        var result = PricingEngine.Calculate(request, rules);
+
+        // Assert
+        Assert.Equal(150m, result.BasePrice);
+        Assert.Contains("WeightTier", result.AppliedRules[0]);
+    }
+
+    [Fact]
+    public void PricingEngine_Priority_LowerNumberProcessedFirst()
+    {
+        // Arrange
+        // Two rules that both affect basePrice - lower priority number processed first
+        var request = new QuoteRequest(10m, "10100", "95120");
+        var rules = new List<Rule>
+        {
+            new WeightTierRule
+            {
+                Id = "low-priority",
+                Type = "WeightTier",
+                Name = "Standard Pricing",
+                IsActive = true,
+                Priority = 1,  // Processed first
+                Tiers = new() { new(0, 100, 10) }
+            },
+            new WeightTierRule
+            {
+                Id = "high-priority",
+                Type = "WeightTier",
+                Name = "Premium Pricing",
+                IsActive = true,
+                Priority = 2,  // Processed second (overwrites)
+                Tiers = new() { new(0, 100, 20) }
+            }
+        };
+
+        // Act
+        var result = PricingEngine.Calculate(request, rules);
+
+        // Assert
+        // High priority (2) processes last, so its basePrice wins (10 kg * 20 = 200)
+        Assert.Equal(200m, result.BasePrice);
+        Assert.Equal(2, result.AppliedRules.Count);
+    }
+
+    [Fact]
+    public void PricingEngine_MixedPriorities_ShouldProcessInOrder()
+    {
+        // Arrange
+        var request = new QuoteRequest(10m, "10100", "95120");
+        var rules = new List<Rule>
+        {
+            new WeightTierRule
+            {
+                Id = "weight",
+                Type = "WeightTier",
+                Name = "Weight",
+                IsActive = true,
+                Priority = 1,
+                Tiers = new() { new(0, 100, 10) }
+            },
+            new TimeWindowPromotionRule
+            {
+                Id = "discount",
+                Type = "TimeWindowPromotion",
+                Name = "Discount",
+                IsActive = true,
+                Priority = 2,
+                StartTime = "00:00",
+                EndTime = "23:59",
+                DiscountPercent = 20
+            },
+            new RemoteAreaSurchargeRule
+            {
+                Id = "surcharge",
+                Type = "RemoteAreaSurcharge",
+                Name = "Remote",
+                IsActive = true,
+                Priority = 3,
+                RemoteZipPrefixes = new() { "95" },
+                SurchargeFlat = 30
+            }
+        };
+
+        // Act
+        var result = PricingEngine.Calculate(request, rules);
+
+        // Assert
+        Assert.Equal(100m, result.BasePrice);        // 10 * 10
+        Assert.Equal(20m, result.Discount);          // 100 * 20%
+        Assert.Equal(30m, result.Surcharge);
+        Assert.Equal(110m, result.FinalPrice);       // 100 - 20 + 30
+        Assert.Equal(3, result.AppliedRules.Count);
     }
 }

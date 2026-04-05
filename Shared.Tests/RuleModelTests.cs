@@ -18,7 +18,7 @@ public class RuleModelTests
             Id = "weight-1",
             Type = "WeightTier",
             Name = "Standard Weight",
-            Enabled = true,
+            IsActive = true,
             Tiers = new()
             {
                 new(0, 5, 20),
@@ -47,7 +47,7 @@ public class RuleModelTests
             Id = "promo-1",
             Type = "TimeWindowPromotion",
             Name = "Lunch Discount",
-            Enabled = true,
+            IsActive = true,
             StartTime = "11:00",
             EndTime = "13:00",
             DiscountPercent = 15
@@ -72,7 +72,7 @@ public class RuleModelTests
             Id = "surcharge-1",
             Type = "RemoteAreaSurcharge",
             Name = "Southern Zone",
-            Enabled = true,
+            IsActive = true,
             RemoteZipPrefixes = new() { "95", "96" },
             SurchargeFlat = 100
         };
@@ -131,12 +131,12 @@ public class RuleModelTests
             Id = "disabled",
             Type = "WeightTier",
             Name = "Disabled Weight",
-            Enabled = false,
+            IsActive = false,
             Tiers = new() { new(0, 100, 999) }
         };
 
         // Act & Assert
-        Assert.False(rule.Enabled);
+        Assert.False(rule.IsActive);
     }
 
     [Fact]
@@ -153,5 +153,88 @@ public class RuleModelTests
         // Assert
         Assert.NotEmpty(rule.Id);
         Assert.NotEqual("", rule.Id);
+    }
+
+    [Fact]
+    public void Rule_Priority_DefaultsToZero()
+    {
+        // Arrange & Act
+        var rule = new WeightTierRule
+        {
+            Type = "WeightTier",
+            Name = "Test",
+            Tiers = new()
+        };
+
+        // Assert
+        Assert.Equal(0, rule.Priority);
+    }
+
+    [Fact]
+    public void Rule_EffectiveDates_DefaultToNull()
+    {
+        // Arrange & Act
+        var rule = new TimeWindowPromotionRule
+        {
+            Type = "TimeWindowPromotion",
+            Name = "Test",
+            StartTime = "10:00",
+            EndTime = "14:00",
+            DiscountPercent = 10
+        };
+
+        // Assert
+        Assert.Null(rule.EffectiveFrom);
+        Assert.Null(rule.EffectiveTo);
+    }
+
+    [Fact]
+    public void Rule_WithEffectiveDates_ShouldSerializeAndDeserialize()
+    {
+        // Arrange
+        var from = new DateOnly(2026, 4, 1);
+        var to = new DateOnly(2026, 4, 30);
+        var rule = new WeightTierRule
+        {
+            Id = "dated-rule",
+            Type = "WeightTier",
+            Name = "April Campaign",
+            Priority = 5,
+            EffectiveFrom = from,
+            EffectiveTo = to,
+            Tiers = new() { new(0, 100, 10) }
+        };
+
+        // Act
+        var json = JsonSerializer.Serialize(rule, AppJsonContext.Options);
+        var deserialized = JsonSerializer.Deserialize<WeightTierRule>(json, AppJsonContext.Options);
+
+        // Assert
+        Assert.NotNull(deserialized);
+        Assert.Equal(from, deserialized.EffectiveFrom);
+        Assert.Equal(to, deserialized.EffectiveTo);
+        Assert.Equal(5, deserialized.Priority);
+    }
+
+    [Fact]
+    public void Rule_NullEffectiveDates_ShouldBeOmittedFromJson()
+    {
+        // Arrange
+        var rule = new TimeWindowPromotionRule
+        {
+            Id = "no-dates",
+            Type = "TimeWindowPromotion",
+            Name = "Undated",
+            StartTime = "10:00",
+            EndTime = "14:00",
+            DiscountPercent = 10
+        };
+
+        // Act
+        var json = JsonSerializer.Serialize(rule, AppJsonContext.Options);
+
+        // Assert
+        Assert.DoesNotContain("effectiveFrom", json);
+        Assert.DoesNotContain("effectiveTo", json);
     }
 }

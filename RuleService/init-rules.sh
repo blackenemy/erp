@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # Initialize rules from seed file if main file is empty
 
 DATA_DIR="/app/data"

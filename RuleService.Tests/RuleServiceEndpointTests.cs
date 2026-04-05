@@ -20,7 +20,8 @@ public class RuleServiceEndpointTests : IClassFixture<WebApplicationFactory<Prog
         PropertyNameCaseInsensitive = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        WriteIndented = true
+        WriteIndented = true,
+        Converters = { new DateOnlyJsonConverter(), new NullableDateOnlyJsonConverter() }
     };
 
     public RuleServiceEndpointTests(WebApplicationFactory<Program> factory)
@@ -63,7 +64,7 @@ public class RuleServiceEndpointTests : IClassFixture<WebApplicationFactory<Prog
             "$type": "WeightTier",
             "name": "Integration Test Weight Rule",
             "type": "WeightTier",
-            "enabled": true,
+            "is_active": true,
             "tiers": [
                 { "minKg": 0, "maxKg": 10, "pricePerKg": 12 }
             ]
@@ -92,7 +93,7 @@ public class RuleServiceEndpointTests : IClassFixture<WebApplicationFactory<Prog
             "$type": "TimeWindowPromotion",
             "name": "Integration Test Promo",
             "type": "TimeWindowPromotion",
-            "enabled": true,
+            "is_active": true,
             "startTime": "09:00",
             "endTime": "17:00",
             "discountPercent": 25
@@ -112,7 +113,7 @@ public class RuleServiceEndpointTests : IClassFixture<WebApplicationFactory<Prog
             "$type": "RemoteAreaSurcharge",
             "name": "Integration Test Remote",
             "type": "RemoteAreaSurcharge",
-            "enabled": true,
+            "is_active": true,
             "remoteZipPrefixes": ["95", "96"],
             "surchargeFlat": 40
         }
@@ -132,7 +133,7 @@ public class RuleServiceEndpointTests : IClassFixture<WebApplicationFactory<Prog
             "$type": "WeightTier",
             "name": "GetById Test",
             "type": "WeightTier",
-            "enabled": true,
+            "is_active": true,
             "tiers": [{ "minKg": 0, "maxKg": 50, "pricePerKg": 8 }]
         }
         """;
@@ -168,7 +169,7 @@ public class RuleServiceEndpointTests : IClassFixture<WebApplicationFactory<Prog
             "$type": "WeightTier",
             "name": "Before Update",
             "type": "WeightTier",
-            "enabled": true,
+            "is_active": true,
             "tiers": [{ "minKg": 0, "maxKg": 50, "pricePerKg": 8 }]
         }
         """;
@@ -182,7 +183,7 @@ public class RuleServiceEndpointTests : IClassFixture<WebApplicationFactory<Prog
             "$type": "WeightTier",
             "name": "After Update",
             "type": "WeightTier",
-            "enabled": false,
+            "is_active": false,
             "tiers": [{ "minKg": 0, "maxKg": 100, "pricePerKg": 5 }]
         }
         """;
@@ -196,7 +197,7 @@ public class RuleServiceEndpointTests : IClassFixture<WebApplicationFactory<Prog
             await getResponse.Content.ReadAsStringAsync(), _jsonOptions);
         Assert.NotNull(updated);
         Assert.Equal("After Update", updated.Name);
-        Assert.False(updated.Enabled);
+        Assert.False(updated.IsActive);
     }
 
     [Fact]
@@ -207,7 +208,7 @@ public class RuleServiceEndpointTests : IClassFixture<WebApplicationFactory<Prog
             "$type": "WeightTier",
             "name": "Ghost Rule",
             "type": "WeightTier",
-            "enabled": true,
+            "is_active": true,
             "tiers": []
         }
         """;
@@ -226,7 +227,7 @@ public class RuleServiceEndpointTests : IClassFixture<WebApplicationFactory<Prog
             "$type": "WeightTier",
             "name": "To Delete",
             "type": "WeightTier",
-            "enabled": true,
+            "is_active": true,
             "tiers": []
         }
         """;
@@ -262,7 +263,7 @@ public class RuleServiceEndpointTests : IClassFixture<WebApplicationFactory<Prog
             "$type": "RemoteAreaSurcharge",
             "name": "{{uniqueName}}",
             "type": "RemoteAreaSurcharge",
-            "enabled": true,
+            "is_active": true,
             "remoteZipPrefixes": ["99"],
             "surchargeFlat": 100
         }

@@ -19,7 +19,12 @@ public static class PricingEngine
         var surcharge = 0m;
         var applied = new List<string>();
 
-        foreach (var rule in rules.Where(r => r.Enabled))
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        foreach (var rule in rules
+            .Where(r => r.IsActive
+                     && (r.EffectiveFrom == null || today >= r.EffectiveFrom)
+                     && (r.EffectiveTo == null || today <= r.EffectiveTo))
+            .OrderBy(r => r.Priority))
         {
             switch (rule)
             {

@@ -21,7 +21,8 @@ public class PricingServiceEndpointTests : IClassFixture<PricingServiceFactory>
         PropertyNameCaseInsensitive = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        WriteIndented = true
+        WriteIndented = true,
+        Converters = { new DateOnlyJsonConverter(), new NullableDateOnlyJsonConverter() }
     };
 
     public PricingServiceEndpointTests(PricingServiceFactory factory)
@@ -183,7 +184,7 @@ internal class MockRuleServiceHandler : HttpMessageHandler
     ""id"": ""mock-wt1"",
     ""type"": ""WeightTier"",
     ""name"": ""Mock Weight Pricing"",
-    ""enabled"": true,
+    ""is_active"": true,
     ""tiers"": [
       { ""minKg"": 0, ""maxKg"": 5, ""pricePerKg"": 20 },
       { ""minKg"": 5.01, ""maxKg"": 20, ""pricePerKg"": 15 },
@@ -195,7 +196,7 @@ internal class MockRuleServiceHandler : HttpMessageHandler
     ""id"": ""mock-ra1"",
     ""type"": ""RemoteAreaSurcharge"",
     ""name"": ""Mock Remote Area"",
-    ""enabled"": true,
+    ""is_active"": true,
     ""remoteZipPrefixes"": [""95"", ""96""],
     ""surchargeFlat"": 50
   }

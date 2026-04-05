@@ -26,7 +26,8 @@ public sealed class RuleStore
         PropertyNameCaseInsensitive = true,
         WriteIndented = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        Converters = { new DateOnlyJsonConverter(), new NullableDateOnlyJsonConverter() }
     };
 
     public RuleStore()

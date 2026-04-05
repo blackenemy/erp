@@ -24,6 +24,8 @@ builder.Services.ConfigureHttpJsonOptions(o =>
     o.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
     o.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
     o.SerializerOptions.WriteIndented = true;
+    o.SerializerOptions.Converters.Add(new DateOnlyJsonConverter());
+    o.SerializerOptions.Converters.Add(new NullableDateOnlyJsonConverter());
     o.SerializerOptions.TypeInfoResolver = new DefaultJsonTypeInfoResolver().WithAddedModifier(x =>
     {
         if (x.Type == typeof(Rule))
@@ -103,7 +105,8 @@ app.MapPost("/rules", async (HttpRequest request, RuleStore store) =>
         PropertyNameCaseInsensitive = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        WriteIndented = true
+        WriteIndented = true,
+        Converters = { new DateOnlyJsonConverter(), new NullableDateOnlyJsonConverter() }
     };
 
     options.TypeInfoResolver = new DefaultJsonTypeInfoResolver().WithAddedModifier(x =>

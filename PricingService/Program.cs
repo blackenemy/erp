@@ -23,6 +23,8 @@ builder.Services.ConfigureHttpJsonOptions(o =>
     o.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
     o.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
     o.SerializerOptions.WriteIndented = true;
+    o.SerializerOptions.Converters.Add(new DateOnlyJsonConverter());
+    o.SerializerOptions.Converters.Add(new NullableDateOnlyJsonConverter());
 });
 
 // ── Rate Limiting (100 concurrent requests) ──
@@ -128,7 +130,8 @@ public sealed class RuleServiceClient(HttpClient http)
         PropertyNameCaseInsensitive = true,
         WriteIndented = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        Converters = { new DateOnlyJsonConverter(), new NullableDateOnlyJsonConverter() }
     };
 
     public async Task<List<Rule>> GetRulesAsync()
@@ -152,7 +155,12 @@ public static class PricingEngine
         var surcharge = 0m;
         var applied = new List<string>();
 
-        foreach (var rule in rules.Where(r => r.Enabled))
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        foreach (var rule in rules
+            .Where(r => r.IsActive
+                     && (r.EffectiveFrom == null || today >= r.EffectiveFrom)
+                     && (r.EffectiveTo == null || today <= r.EffectiveTo))
+            .OrderBy(r => r.Priority))
         {
             switch (rule)
             {
@@ -260,7 +268,8 @@ public sealed class JobStore
         PropertyNameCaseInsensitive = true,
         WriteIndented = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        Converters = { new DateOnlyJsonConverter(), new NullableDateOnlyJsonConverter() }
     };
 
     public JobStore()

@@ -14,6 +14,7 @@
   - [Run Locally (Development)](#run-locally-development)
 - [Services](#services)
 - [Rule Types](#rule-types)
+- [Rule Lifecycle](#rule-lifecycle--active--effective-dates)
 - [Quote Request Flow](#quote-request-flow)
 - [API Documentation — Scalar UI](#api-documentation--scalar-ui)
 - [Environment Configuration](#environment-configuration)
@@ -156,7 +157,9 @@ pending → processing → completed | failed
   "$type": "WeightTier",
   "name": "Standard Weight Pricing",
   "type": "WeightTier",
-  "enabled": true,
+  "is_active": true,
+  "effective_from": "2026-04-06",
+  "effective_to": "2099-12-31",
   "tiers": [
     { "minKg": 0, "maxKg": 5, "pricePerKg": 10 },
     { "minKg": 5, "maxKg": 20, "pricePerKg": 8 },
@@ -176,7 +179,9 @@ pending → processing → completed | failed
   "$type": "TimeWindowPromotion",
   "name": "Lunch Promo",
   "type": "TimeWindowPromotion",
-  "enabled": true,
+  "is_active": true,
+  "effective_from": "2026-04-06",
+  "effective_to": "2099-12-31",
   "startTime": "11:00",
   "endTime": "13:00",
   "discountPercent": 15
@@ -194,13 +199,53 @@ pending → processing → completed | failed
   "$type": "RemoteAreaSurcharge",
   "name": "Remote Area Fee",
   "type": "RemoteAreaSurcharge",
-  "enabled": true,
+  "is_active": true,
+  "effective_from": "2026-04-06",
+  "effective_to": "2099-12-31",
   "remoteZipPrefixes": ["95", "96", "63"],
   "surchargeFlat": 30
 }
 ```
 
 ตัวอย่าง: ส่งไป zip 95120 → ขึ้นต้นด้วย "95" → `surcharge = 30 ฿`
+
+### Rule Lifecycle — Active & Effective Dates
+
+ทุกกฎมี 3 field สำหรับควบคุมเมื่อไหร่ที่กฎจะใช้งาน:
+
+| Field              | Type                  | คำอธิบาย                                                                 |
+| ------------------ | --------------------- | ----------------------------------------------------------------------- |
+| `is_active`        | Boolean               | ✅ true = กฎใช้งาน / ❌ false = กฎปิด (ข้ามไป)                          |
+| `effective_from`   | Date (yyyy-MM-dd)     | วันเริ่มใช้งาน (inclusive) — ถ้า null = ไม่มีวันเริ่มต้น                |
+| `effective_to`     | Date (yyyy-MM-dd)     | วันสิ้นสุดใช้งาน (inclusive) — ถ้า null = ไม่มีวันสิ้นสุด              |
+
+**ตัวอย่าง:**
+
+```json
+{
+  "name": "Summer Campaign",
+  "type": "TimeWindowPromotion",
+  "is_active": true,
+  "effective_from": "2026-06-01",
+  "effective_to": "2026-08-31",
+  "startTime": "11:00",
+  "endTime": "13:00",
+  "discountPercent": 20
+}
+```
+
+- ✅ ใช้ได้ตั้งแต่ 1 มิถุนายน ถึง 31 สิงหาคม 2026 (ระหว่างสองวันนี้)
+- ❌ ใช้ไม่ได้ก่อนหรือหลังช่วงเวลานี้
+
+**Logic:**
+
+```
+ถ้า is_active = false → skip กฎนี้ทั้งหมด
+ถ้า is_active = true → เช็คช่วงวันที่:
+  ถ้า effective_from ≠ null และ วันนี้ < effective_from → skip
+  ถ้า effective_to ≠ null และ วันนี้ > effective_to → skip
+  ถ้าผ่านทั้งคู่ → ประเมินกฎนี้
+```
 
 ### สรุปการคำนวณ
 
@@ -232,7 +277,7 @@ FinalPrice  = BasePrice − Discount + Surcharge
 }
 ```
 
-จากนั้น PricingService จะดึงกฎ **ทั้งหมด** จาก RuleService (`GET /rules`) แล้ว `PricingEngine` วน loop กฎที่ `enabled: true` ทุกตัว:
+จากนั้น PricingService จะดึงกฎ **ทั้งหมด** จาก RuleService (`GET /rules`) แล้ว `PricingEngine` วน loop กฎที่ `is_active: true` และอยู่ในช่วงวันที่ `effective_from` ถึง `effective_to` ทุกตัว:
 
 ```
 QuoteRequest เข้ามา
@@ -483,7 +528,9 @@ curl -X POST http://localhost:5002/rules \
     "$type": "WeightTier",
     "name": "Standard Weight Pricing",
     "type": "WeightTier",
-    "enabled": true,
+    "is_active": true,
+    "effective_from": "2026-04-06",
+    "effective_to": "2099-12-31",
     "tiers": [
       { "minKg": 0, "maxKg": 5, "pricePerKg": 10 },
       { "minKg": 5, "maxKg": 20, "pricePerKg": 8 },

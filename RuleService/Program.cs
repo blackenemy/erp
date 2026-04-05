@@ -64,8 +64,9 @@ builder.Services.AddRateLimiter(options =>
 builder.Services.AddOpenApi();
 builder.Services.AddCors(options =>
 {
+    var corsOrigins = (builder.Configuration["CORS_ORIGINS"] ?? "http://localhost:3000").Split(",");
     options.AddDefaultPolicy(policy =>
-        policy.WithOrigins("http://localhost:3000")
+        policy.WithOrigins(corsOrigins)
               .AllowAnyHeader()
               .AllowAnyMethod());
 });

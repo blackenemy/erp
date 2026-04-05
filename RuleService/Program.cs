@@ -2,9 +2,9 @@ using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
+using RuleService;
 using Scalar.AspNetCore;
 using Shared;
-using RuleService;
 
 var builder = WebApplication.CreateBuilder(args);
 

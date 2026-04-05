@@ -43,8 +43,8 @@ jobs:
           rsync -avz --delete ./publish/ root@10.0.0.8:/var/www/hubs-backend/
           rsync -avz ecosystem.config.js root@10.0.0.8:/var/www/hubs-backend/
 
-          # 3. สั่ง PM2 รีโหลดแอป
-          ssh root@10.0.0.8 "cd /var/www/hubs-backend && pm2 start ecosystem.config.js --update-env && pm2 save"
+          # 3. ล้างตัวเก่า + สตาร์ท PM2 ใหม่
+          ssh root@10.0.0.8 "cd /var/www/hubs-backend && pm2 delete hubs-backend hubs-backend-rule hubs-backend-pricing 2>/dev/null; pm2 start ecosystem.config.js --update-env && pm2 save"
 
       - name: ✅ Status Report
         if: success()

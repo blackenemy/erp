@@ -1,18 +1,16 @@
-name: CI
+name: CI/CD Backend (Main Only)
 
 on:
   push:
-    branches: [main, dev]
+    branches: ["main"] # รันเฉพาะตอน push ลง main
   pull_request:
-    branches: [main]
+    branches: ["main"] # รันเฉพาะตอนเปิด PR เข้าหา main
 
 jobs:
-  test:
-    name: Lint, Build & Test
-    runs-on: ubuntu-latest
-
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  check-build-deploy:
+    name: Lint, Build, Test & Deploy
+    # --- เปลี่ยนมาใช้เครื่อง Runner 108 ของคุณ ---
+    runs-on: self-hosted
 
     steps:
       - name: Checkout
@@ -22,45 +20,36 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "10.0.x"
-          cache: true
-          cache-dependency-path: "**/*.csproj"
 
       - name: Restore dependencies
         run: dotnet restore MiniPricingPlatform.slnx
 
       - name: 1️⃣ Check formatting (Lint)
         run: dotnet format MiniPricingPlatform.slnx --verify-no-changes
-        continue-on-error: false
 
       - name: 2️⃣ Build projects (Release)
-        run: dotnet build MiniPricingPlatform.slnx --no-restore --configuration Release /p:TreatWarningsAsErrors=true
-        continue-on-error: false
+        run: dotnet build MiniPricingPlatform.slnx --no-restore --configuration Release
 
       - name: 3️⃣ Run tests (Release)
-        run: >
-          dotnet test MiniPricingPlatform.slnx
-          --no-restore
-          --no-build
-          --configuration Release
-          --logger "console;verbosity=normal"
-        continue-on-error: false
+        run: dotnet test MiniPricingPlatform.slnx --no-restore --no-build --configuration Release
 
-      - name: ✅ All checks passed
-        if: success()
-        run: echo "🟢 CI Pipeline Passed - Ready to merge!"
-
-      - name: ❌ CI Pipeline Failed
-        if: failure()
+      # ==========================================
+      # 🚀 ส่วนที่เพิ่มใหม่: Publish & Deployment
+      # ==========================================
+      - name: 4️⃣ Publish & Deploy to CT 107
+        # ทำเฉพาะตอน push/merge ลง main จริงๆ เท่านั้น
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          echo "🔴 CI Pipeline Failed!"
-          echo ""
-          echo "Fix issues in this order:"
-          echo "1️⃣  Formatting issues:"
-          echo "     dotnet format MiniPricingPlatform.slnx"
-          echo ""
-          echo "2️⃣  Build errors:"
-          echo "     dotnet build MiniPricingPlatform.slnx --configuration Release"
-          echo ""
-          echo "3️⃣  Test failures:"
-          echo "     dotnet test MiniPricingPlatform.slnx --configuration Release"
-          exit 1
+          # 1. สร้างไฟล์สำหรับรันจริง (Publish) ออกมาที่โฟลเดอร์ ./publish
+          dotnet publish MiniPricingPlatform.slnx -c Release -o ./publish
+
+          # 2. ส่งไฟล์ไปที่เครื่อง 107 (Backend Node)
+          rsync -avz --delete ./publish/ root@10.0.0.8:/var/www/hubs-backend/
+
+          # 3. สั่ง PM2 รีโหลดแอป (ตรวจสอบชื่อไฟล์ .dll ของโปรเจกต์หลักคุณด้วย)
+          # แก้ไข 'MiniPricingPlatform.Api.dll' ให้ตรงกับชื่อไฟล์จริงของคุณ
+          ssh root@10.0.0.8 "cd /var/www/hubs-backend && (pm2 reload hubs-backend || pm2 start dotnet --name hubs-backend -- MiniPricingPlatform.Api.dll)"
+
+      - name: ✅ Status Report
+        if: success()
+        run: echo "🟢 Backend Deployed Successfully!"

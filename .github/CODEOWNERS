@@ -1,0 +1,14 @@
+# Global owner
+* @Blackenemy
+
+# CI/CD configuration
+.github/ @Blackenemy
+Dockerfile* @Blackenemy
+docker-compose.yml @Blackenemy
+
+# Core services
+PricingService/ @Blackenemy
+RuleService/ @Blackenemy
+
+# Tests (must pass before merge)
+*.Tests/ @Blackenemy

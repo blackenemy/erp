@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Scalar.AspNetCore;
 using Shared;
@@ -17,7 +18,12 @@ if (bool.TryParse(builder.Configuration["STRUCTURED_LOGGING"], out var structure
     builder.Logging.AddJsonConsole();
 
 builder.Services.ConfigureHttpJsonOptions(o =>
-    o.SerializerOptions.TypeInfoResolverChain.Add(AppJsonContext.Default));
+{
+    o.SerializerOptions.PropertyNameCaseInsensitive = true;
+    o.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    o.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+    o.SerializerOptions.WriteIndented = true;
+});
 
 builder.Services.AddSingleton<RuleStore>();
 

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Shared;
 
 namespace PricingService;
@@ -9,9 +10,17 @@ namespace PricingService;
 /// </summary>
 public sealed class RuleServiceClient(HttpClient http)
 {
+    private static readonly JsonSerializerOptions _options = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        WriteIndented = true
+    };
+
     public async Task<List<Rule>> GetRulesAsync()
     {
         var stream = await http.GetStreamAsync("/rules");
-        return await JsonSerializer.DeserializeAsync(stream, AppJsonContext.Default.ListRule) ?? [];
+        return await JsonSerializer.DeserializeAsync<List<Rule>>(stream, _options) ?? [];
     }
 }

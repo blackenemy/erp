@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Shared;
@@ -18,7 +19,9 @@ public class PricingServiceEndpointTests : IClassFixture<PricingServiceFactory>
     private readonly JsonSerializerOptions _jsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
-        TypeInfoResolverChain = { AppJsonContext.Default }
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        WriteIndented = true
     };
 
     public PricingServiceEndpointTests(PricingServiceFactory factory)
@@ -173,33 +176,30 @@ public class PricingServiceFactory : WebApplicationFactory<Program>
 /// </summary>
 internal class MockRuleServiceHandler : HttpMessageHandler
 {
-    private static readonly string RulesJson = JsonSerializer.Serialize(
-        new List<Rule>
-        {
-            new WeightTierRule
-            {
-                Id = "mock-wt1",
-                Type = "WeightTier",
-                Name = "Mock Weight Pricing",
-                Enabled = true,
-                Tiers =
-                [
-                    new(0, 5, 20),
-                    new(5.01m, 20, 15),
-                    new(20.01m, 100, 10)
-                ]
-            },
-            new RemoteAreaSurchargeRule
-            {
-                Id = "mock-ra1",
-                Type = "RemoteAreaSurcharge",
-                Name = "Mock Remote Area",
-                Enabled = true,
-                RemoteZipPrefixes = ["95", "96"],
-                SurchargeFlat = 50
-            }
-        },
-        AppJsonContext.Default.ListRule);
+    private static readonly string RulesJson = @"
+[
+  {
+    ""$type"": ""WeightTier"",
+    ""id"": ""mock-wt1"",
+    ""type"": ""WeightTier"",
+    ""name"": ""Mock Weight Pricing"",
+    ""enabled"": true,
+    ""tiers"": [
+      { ""minKg"": 0, ""maxKg"": 5, ""pricePerKg"": 20 },
+      { ""minKg"": 5.01, ""maxKg"": 20, ""pricePerKg"": 15 },
+      { ""minKg"": 20.01, ""maxKg"": 100, ""pricePerKg"": 10 }
+    ]
+  },
+  {
+    ""$type"": ""RemoteAreaSurcharge"",
+    ""id"": ""mock-ra1"",
+    ""type"": ""RemoteAreaSurcharge"",
+    ""name"": ""Mock Remote Area"",
+    ""enabled"": true,
+    ""remoteZipPrefixes"": [""95"", ""96""],
+    ""surchargeFlat"": 50
+  }
+]";
 
     protected override Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request, CancellationToken cancellationToken)

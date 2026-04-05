@@ -24,7 +24,7 @@ public sealed class JobStore
         if (File.Exists(FilePath))
         {
             var json = File.ReadAllText(FilePath);
-            var list = JsonSerializer.Deserialize<List<JobRecord>>(json, AppJsonContext.Default.ListJobRecord) ?? [];
+            var list = JsonSerializer.Deserialize<List<JobRecord>>(json, AppJsonContext.Options) ?? [];
             _jobs = new(list.ToDictionary(j => j.JobId));
         }
         else
@@ -66,7 +66,7 @@ public sealed class JobStore
         lock (_fileLock)
         {
             var json = JsonSerializer.Serialize(
-                [.. _jobs.Values], AppJsonContext.Default.ListJobRecord);
+                _jobs.Values.ToList(), AppJsonContext.Options);
             File.WriteAllText(FilePath, json);
         }
     }

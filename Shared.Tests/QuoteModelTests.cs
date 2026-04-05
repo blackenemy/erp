@@ -16,8 +16,8 @@ public class QuoteModelTests
         var request = new QuoteRequest(10.5m, "10100", "95120");
 
         // Act
-        var json = JsonSerializer.Serialize(request, AppJsonContext.Default.QuoteRequest);
-        var deserialized = JsonSerializer.Deserialize<QuoteRequest>(json, AppJsonContext.Default.QuoteRequest);
+        var json = JsonSerializer.Serialize(request, AppJsonContext.Options);
+        var deserialized = JsonSerializer.Deserialize<QuoteRequest>(json, AppJsonContext.Options);
 
         // Assert
         Assert.NotNull(deserialized);

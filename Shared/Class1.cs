@@ -75,28 +75,10 @@ public sealed record JobRecord
 }
 
 // ══════════════════════════════════════════════
-//  Source-generated JSON context (AOT-friendly)
+//  JSON serialization options
 // ══════════════════════════════════════════════
 
-[JsonSerializable(typeof(Rule))]
-[JsonSerializable(typeof(List<Rule>))]
-[JsonSerializable(typeof(TimeWindowPromotionRule))]
-[JsonSerializable(typeof(RemoteAreaSurchargeRule))]
-[JsonSerializable(typeof(WeightTierRule))]
-[JsonSerializable(typeof(QuoteRequest))]
-[JsonSerializable(typeof(QuoteResult))]
-[JsonSerializable(typeof(BulkQuoteRequest))]
-[JsonSerializable(typeof(JobRecord))]
-[JsonSerializable(typeof(List<JobRecord>))]
-[JsonSourceGenerationOptions(
-    WriteIndented = true,
-    PropertyNameCaseInsensitive = true,
-    PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
-    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    UseStringEnumConverter = false,
-    AllowTrailingCommas = true,
-    ReadCommentHandling = JsonCommentHandling.Skip)]
-public partial class AppJsonContext : JsonSerializerContext
+public static class AppJsonContext
 {
     public static JsonSerializerOptions Options { get; } = new()
     {
@@ -105,7 +87,6 @@ public partial class AppJsonContext : JsonSerializerContext
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         AllowTrailingCommas = true,
-        ReadCommentHandling = JsonCommentHandling.Skip,
-        TypeInfoResolver = Default
+        ReadCommentHandling = JsonCommentHandling.Skip
     };
 }

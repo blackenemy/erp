@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Shared;
 using Xunit;
@@ -17,7 +18,9 @@ public class RuleServiceEndpointTests : IClassFixture<WebApplicationFactory<Prog
     private readonly JsonSerializerOptions _jsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
-        TypeInfoResolverChain = { AppJsonContext.Default }
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        WriteIndented = true
     };
 
     public RuleServiceEndpointTests(WebApplicationFactory<Program> factory)
